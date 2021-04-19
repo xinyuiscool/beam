@@ -151,8 +151,10 @@ class BatchRowsAsDataFrame(beam.PTransform):
       construct = lambda batch: pd.Series(batch, dtype=dtype)
     else:
       raise NotImplementedError("Unknown proxy type: %s" % proxy)
-    return pcoll | self._batch_elements_transform | beam.Map(construct)
+    return pcoll | self._batch_elements_transform | beam.Map(construct) | beam.Map(test)
 
+def test(x):
+    return x
 
 def generate_proxy(element_type):
   # type: (type) -> pd.DataFrame

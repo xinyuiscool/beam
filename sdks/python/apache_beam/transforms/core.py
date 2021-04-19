@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import copy
 import inspect
 import logging
+import operator
 import random
 import types
 import typing
@@ -2362,7 +2363,9 @@ class GroupByKey(PTransform):
 
 def _expr_to_callable(expr, pos):
   if isinstance(expr, str):
-    return lambda x: getattr(x, expr)
+    return lambda x: (
+      operator.attrgetter(expr)(x)
+    )
   elif callable(expr):
     return expr
   else:
@@ -2531,6 +2534,9 @@ class _GroupAndAggregate(PTransform):
             value: _dynamic_named_tuple('Result', result_fields)
             (*(key + value))))
 
+def toRow(x, fields):
+  return pvalue.Row(**{name.rpartition('.')[-1]: expr(x)
+                for name, expr in fields})
 
 class Select(PTransform):
   """Converts the elements of a PCollection into a schema'd PCollection of Rows.
@@ -2560,13 +2566,12 @@ class Select(PTransform):
 
   def expand(self, pcoll):
     return pcoll | Map(
-        lambda x: pvalue.Row(**{name: expr(x)
-                                for name, expr in self._fields}))
+        lambda x: toRow(x, self._fields))
 
   def infer_output_type(self, input_type):
     from apache_beam.typehints import row_type
     return row_type.RowTypeConstraint([
-        (name, trivial_inference.infer_return_type(expr, [input_type]))
+        (name.rpartition('.')[-1], trivial_inference.infer_return_type(expr, [input_type]))
         for (name, expr) in self._fields
     ])
 

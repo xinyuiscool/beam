@@ -211,6 +211,8 @@ class _ReadFromPandas(beam.PTransform):
       else:
         sample = self.reader(handle, *self.args, **self.kwargs)
 
+    breakpoint()
+
     pcoll = (
         paths_pcoll
         | fileio.MatchFiles(self.path)
