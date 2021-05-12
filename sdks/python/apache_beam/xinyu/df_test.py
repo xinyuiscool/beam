@@ -1,5 +1,7 @@
 import unittest
 import pandas as pd
+from pandas import DataFrame
+
 import apache_beam as beam
 from apache_beam.dataframe import convert
 
@@ -14,8 +16,9 @@ class DfTest(unittest.TestCase):
         })
         p = beam.Pipeline()
         pc = p | beam.Create([input])
-        pdf = convert.to_dataframe(pc, proxy=input.iloc[0:0])
-        rdf = pdf.loc[pdf['Animal'] == 'Zebra']
+        pdf: DataFrame = convert.to_dataframe(pc, proxy=input.iloc[0:0])
+        #rdf = pdf.loc[pdf['Animal'] == 'Zebra']
+        rdf = pdf.where(pdf['Animal'] == 'Zebra')
         result = convert.to_pcollection(rdf)
         _ = result | beam.Map(print)
 

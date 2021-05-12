@@ -42,6 +42,7 @@ from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
+import typing
 from future.utils import itervalues
 
 from apache_beam import coders

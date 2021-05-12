@@ -4,7 +4,6 @@ from typing import Optional, Union
 import typing
 
 import apache_beam as beam
-from apache_beam.io import avroio
 from apache_beam import coders
 from apache_beam.dataframe import convert
 from apache_beam.dataframe.io import read_csv
