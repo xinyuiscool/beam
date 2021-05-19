@@ -112,7 +112,21 @@ class GroupByKeyTranslator<K, InputT, OutputT>
       PipelineNode.PTransformNode transform,
       QueryablePipeline pipeline,
       PortableTranslationContext ctx) {
-    doTranslatePortable(transform, pipeline, ctx);
+    final String inputId = ctx.getInputId(transform);
+    final RunnerApi.PCollection input = pipeline.getComponents().getPcollectionsOrThrow(inputId);
+    final MessageStream<OpMessage<KV<K, InputT>>> inputStream =
+        ctx.getMessageStreamById(inputId);
+    final WindowingStrategy<?, BoundedWindow> windowingStrategy =
+        ctx.getPortableWindowStrategy(inputId, pipeline.getComponents());
+    final WindowedValue.WindowedValueCoder<KV<K, InputT>> windowedInputCoder =
+        ctx.instantiateCoder(inputId, pipeline.getComponents());
+    final TupleTag<KV<K, OutputT>> outputTag =
+        new TupleTag<>(Iterables.getOnlyElement(transform.getTransform().getOutputsMap().keySet()));
+
+    final MessageStream<OpMessage<KV<K, OutputT>>> outputStream = doTranslatePortable(
+        input, inputStream, windowingStrategy, windowedInputCoder, outputTag, ctx);
+
+    ctx.registerMessageStream(ctx.getOutputId(transform), outputStream);
   }
 
   @Override
@@ -129,37 +143,27 @@ class GroupByKeyTranslator<K, InputT, OutputT>
     return ConfigBuilder.createRocksDBStoreConfig(options);
   }
 
-  private static <K, InputT, OutputT> void doTranslatePortable(
-      PipelineNode.PTransformNode transform,
-      QueryablePipeline pipeline,
+  static <K, InputT, OutputT> MessageStream<OpMessage<KV<K, OutputT>>> doTranslatePortable(
+      RunnerApi.PCollection input,
+      MessageStream<OpMessage<KV<K, InputT>>> inputStream,
+      WindowingStrategy<?, BoundedWindow> windowingStrategy,
+      WindowedValue.WindowedValueCoder<KV<K, InputT>> windowedInputCoder,
+      TupleTag<KV<K, OutputT>> outputTag,
       PortableTranslationContext ctx) {
-    final MessageStream<OpMessage<KV<K, InputT>>> inputStream =
-        ctx.getOneInputMessageStream(transform);
     final boolean needRepartition = ctx.getSamzaPipelineOptions().getMaxSourceParallelism() > 1;
-    final WindowingStrategy<?, BoundedWindow> windowingStrategy =
-        ctx.getPortableWindowStrategy(transform, pipeline);
     final Coder<BoundedWindow> windowCoder = windowingStrategy.getWindowFn().windowCoder();
-
-    final String inputId = ctx.getInputId(transform);
-    final WindowedValue.WindowedValueCoder<KV<K, InputT>> windowedInputCoder =
-        ctx.instantiateCoder(inputId, pipeline.getComponents());
     final KvCoder<K, InputT> kvInputCoder = (KvCoder<K, InputT>) windowedInputCoder.getValueCoder();
     final Coder<WindowedValue<KV<K, InputT>>> elementCoder =
         WindowedValue.FullWindowedValueCoder.of(kvInputCoder, windowCoder);
-
-    final TupleTag<KV<K, OutputT>> outputTag =
-        new TupleTag<>(Iterables.getOnlyElement(transform.getTransform().getOutputsMap().keySet()));
 
     @SuppressWarnings("unchecked")
     final SystemReduceFn<K, InputT, ?, OutputT, BoundedWindow> reduceFn =
         (SystemReduceFn<K, InputT, ?, OutputT, BoundedWindow>)
             SystemReduceFn.buffering(kvInputCoder.getValueCoder());
 
-    final RunnerApi.PCollection input = pipeline.getComponents().getPcollectionsOrThrow(inputId);
     final PCollection.IsBounded isBounded = SamzaPipelineTranslatorUtils.isBounded(input);
 
-    final MessageStream<OpMessage<KV<K, OutputT>>> outputStream =
-        doTranslateGBK(
+    return  doTranslateGBK(
             inputStream,
             needRepartition,
             reduceFn,
@@ -170,7 +174,6 @@ class GroupByKeyTranslator<K, InputT, OutputT>
             ctx.getTransformId(),
             outputTag,
             isBounded);
-    ctx.registerMessageStream(ctx.getOutputId(transform), outputStream);
   }
 
   private static <K, InputT, OutputT> MessageStream<OpMessage<KV<K, OutputT>>> doTranslateGBK(

@@ -148,16 +148,14 @@ public class PortableTranslationContext {
   }
 
   public WindowingStrategy<?, BoundedWindow> getPortableWindowStrategy(
-      PipelineNode.PTransformNode transform, QueryablePipeline pipeline) {
-    String inputId = Iterables.getOnlyElement(transform.getTransform().getInputsMap().values());
+      String collectionId, RunnerApi.Components components) {
     RehydratedComponents rehydratedComponents =
-        RehydratedComponents.forComponents(pipeline.getComponents());
+        RehydratedComponents.forComponents(components);
 
     RunnerApi.WindowingStrategy windowingStrategyProto =
-        pipeline
-            .getComponents()
+        components
             .getWindowingStrategiesOrThrow(
-                pipeline.getComponents().getPcollectionsOrThrow(inputId).getWindowingStrategyId());
+                components.getPcollectionsOrThrow(collectionId).getWindowingStrategyId());
 
     WindowingStrategy<?, ?> windowingStrategy;
     try {
