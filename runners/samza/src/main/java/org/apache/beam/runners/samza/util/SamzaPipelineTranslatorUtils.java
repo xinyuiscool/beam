@@ -50,35 +50,6 @@ public final class SamzaPipelineTranslatorUtils {
     }
   }
 
-  public static WindowingStrategy<?, BoundedWindow> getPortableWindowStrategy(
-      PipelineNode.PTransformNode transform, QueryablePipeline pipeline) {
-    String inputId = Iterables.getOnlyElement(transform.getTransform().getInputsMap().values());
-    RehydratedComponents rehydratedComponents =
-        RehydratedComponents.forComponents(pipeline.getComponents());
-
-    RunnerApi.WindowingStrategy windowingStrategyProto =
-        pipeline
-            .getComponents()
-            .getWindowingStrategiesOrThrow(
-                pipeline.getComponents().getPcollectionsOrThrow(inputId).getWindowingStrategyId());
-
-    WindowingStrategy<?, ?> windowingStrategy;
-    try {
-      windowingStrategy =
-          WindowingStrategyTranslation.fromProto(windowingStrategyProto, rehydratedComponents);
-    } catch (InvalidProtocolBufferException e) {
-      throw new IllegalStateException(
-          String.format(
-              "Unable to hydrate GroupByKey windowing strategy %s.", windowingStrategyProto),
-          e);
-    }
-
-    @SuppressWarnings("unchecked")
-    WindowingStrategy<?, BoundedWindow> ret =
-        (WindowingStrategy<?, BoundedWindow>) windowingStrategy;
-    return ret;
-  }
-
   /**
    * Escape the non-alphabet chars in the name so we can create a physical stream out of it.
    *

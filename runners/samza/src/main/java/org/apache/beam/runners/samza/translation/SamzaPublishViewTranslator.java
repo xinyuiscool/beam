@@ -44,7 +44,7 @@ class SamzaPublishViewTranslator<ElemT, ViewT>
     final String viewId = ctx.getViewId(transform.getView());
 
     final MessageStream<OpMessage<Iterable<ElemT>>> outputStream =
-        doTranslate(inputStream, elementCoder, viewId, ctx.getPipelineOptions());
+        doTranslate(inputStream, elementCoder, ctx.getTransformId(), viewId, ctx.getPipelineOptions());
 
     ctx.registerViewStream(transform.getView(), outputStream);
   }
@@ -52,6 +52,7 @@ class SamzaPublishViewTranslator<ElemT, ViewT>
   static <ElemT> MessageStream<OpMessage<Iterable<ElemT>>> doTranslate(
       MessageStream<OpMessage<Iterable<ElemT>>> inputStream,
       Coder<WindowedValue<Iterable<ElemT>>> coder,
+      String transformId,
       String viewId,
       SamzaPipelineOptions options) {
 
@@ -65,7 +66,7 @@ class SamzaPublishViewTranslator<ElemT, ViewT>
         options.getMaxSourceParallelism() == 1
             ? elementStream
             : elementStream.broadcast(
-                SamzaCoders.toSerde(coder), "view-" + viewId);
+                SamzaCoders.toSerde(coder), "view-" + transformId);
 
     return broadcastStream.map(element -> OpMessage.ofSideInput(viewId, element));
   }
