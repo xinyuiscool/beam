@@ -42,6 +42,8 @@ public class SamzaStateRequestHandlers {
     EnumMap<BeamFnApi.StateKey.TypeCase, StateRequestHandler> handlerMap =
         new EnumMap<>(BeamFnApi.StateKey.TypeCase.class);
     handlerMap.put(BeamFnApi.StateKey.TypeCase.ITERABLE_SIDE_INPUT, sideInputStateHandler);
+    handlerMap.put(BeamFnApi.StateKey.TypeCase.MULTIMAP_SIDE_INPUT, sideInputStateHandler);
+    handlerMap.put(BeamFnApi.StateKey.TypeCase.MULTIMAP_KEYS_SIDE_INPUT, sideInputStateHandler);
     return StateRequestHandlers.delegateBasedUponType(handlerMap);
   }
 }
