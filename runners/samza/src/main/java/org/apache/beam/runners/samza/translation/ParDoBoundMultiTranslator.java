@@ -17,6 +17,8 @@
  */
 package org.apache.beam.runners.samza.translation;
 
+import static org.apache.beam.runners.fnexecution.translation.PipelineTranslatorUtils.instantiateCoder;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,8 +71,6 @@ import org.apache.samza.operators.MessageStream;
 import org.apache.samza.operators.functions.FlatMapFunction;
 import org.apache.samza.operators.functions.WatermarkFunction;
 import org.joda.time.Instant;
-
-import static org.apache.beam.runners.fnexecution.translation.PipelineTranslatorUtils.instantiateCoder;
 
 /**
  * Translates {@link org.apache.beam.sdk.transforms.ParDo.MultiOutput} or ExecutableStage in
@@ -242,24 +242,25 @@ class ParDoBoundMultiTranslator<InT, OutT>
     final Map<String, PCollectionView<?>> idToViewMapping = new HashMap<>();
     final RunnerApi.Components components = stagePayload.getComponents();
     for (SideInputId sideInputId : stagePayload.getSideInputsList()) {
-      final String sideInputCollectionId = components
-          .getTransformsOrThrow(sideInputId.getTransformId())
-          .getInputsOrThrow(sideInputId.getLocalName());
+      final String sideInputCollectionId =
+          components
+              .getTransformsOrThrow(sideInputId.getTransformId())
+              .getInputsOrThrow(sideInputId.getLocalName());
       final WindowingStrategy<?, BoundedWindow> windowingStrategy =
           ctx.getPortableWindowStrategy(sideInputCollectionId, components);
       final WindowedValue.WindowedValueCoder<?> coder =
           (WindowedValue.WindowedValueCoder) instantiateCoder(sideInputCollectionId, components);
 
-      final PCollectionView<?> view = createPCollectionView(
-          sideInputId, coder, windowingStrategy);
+      final PCollectionView<?> view = createPCollectionView(sideInputId, coder, windowingStrategy);
 
-      final MessageStream<OpMessage<Iterable<?>>> broadcastSideInput = groupAndBroadcastSideInput(
-          sideInputId,
-          sideInputCollectionId,
-          components.getPcollectionsOrThrow(sideInputCollectionId),
-          (WindowingStrategy) windowingStrategy,
-          coder,
-          ctx);
+      final MessageStream<OpMessage<Iterable<?>>> broadcastSideInput =
+          groupAndBroadcastSideInput(
+              sideInputId,
+              sideInputCollectionId,
+              components.getPcollectionsOrThrow(sideInputCollectionId),
+              (WindowingStrategy) windowingStrategy,
+              coder,
+              ctx);
 
       sideInputStreams.add(broadcastSideInput);
       sideInputMapping.put(sideInputId, view);
@@ -307,7 +308,8 @@ class ParDoBoundMultiTranslator<InT, OutT>
             windowedInputCoder.getValueCoder(), // input coder not in use
             windowedInputCoder,
             Collections.emptyMap(), // output coders not in use
-            new ArrayList<>(sideInputMapping.values()), // sideInputs not in use until side input support
+            new ArrayList<>(
+                sideInputMapping.values()), // sideInputs not in use until side input support
             new ArrayList<>(idToTupleTagMap.values()), // used by java runner only
             ctx.getPortableWindowStrategy(inputId, stagePayload.getComponents()),
             idToViewMapping, // idToViewMap not in use until side input support
@@ -414,7 +416,7 @@ class ParDoBoundMultiTranslator<InT, OutT>
       WindowedValue.WindowedValueCoder<?> coder,
       WindowingStrategy<?, BoundedWindow> windowingStrategy) {
 
-    //final WindowedValue.WindowedValueCoder iterableCoder =
+    // final WindowedValue.WindowedValueCoder iterableCoder =
     //    coder.withValueCoder(IterableCoder.of(coder.getValueCoder()));
 
     return new RunnerPCollectionView<>(
@@ -427,22 +429,22 @@ class ParDoBoundMultiTranslator<InT, OutT>
         coder.getValueCoder());
   }
 
-  private static <SideInputT> MessageStream<OpMessage<Iterable<SideInputT>>> groupAndBroadcastSideInput(
-      SideInputId sideInputId,
-      String sideInputCollectionId,
-      RunnerApi.PCollection sideInputPCollection,
-      WindowingStrategy<SideInputT, BoundedWindow> windowingStrategy,
-      WindowedValue.WindowedValueCoder<SideInputT> coder,
-      PortableTranslationContext ctx
-  ) {
+  private static <SideInputT>
+      MessageStream<OpMessage<Iterable<SideInputT>>> groupAndBroadcastSideInput(
+          SideInputId sideInputId,
+          String sideInputCollectionId,
+          RunnerApi.PCollection sideInputPCollection,
+          WindowingStrategy<SideInputT, BoundedWindow> windowingStrategy,
+          WindowedValue.WindowedValueCoder<SideInputT> coder,
+          PortableTranslationContext ctx) {
     final MessageStream<OpMessage<SideInputT>> sideInput =
         ctx.getMessageStreamById(sideInputCollectionId);
     final MessageStream<OpMessage<KV<Void, SideInputT>>> keyedSideInput =
-        sideInput.map(opMessage -> {
-          WindowedValue<SideInputT> wv = opMessage.getElement();
-          return OpMessage.ofElement(
-              wv.withValue(KV.of(null, wv.getValue())));
-        });
+        sideInput.map(
+            opMessage -> {
+              WindowedValue<SideInputT> wv = opMessage.getElement();
+              return OpMessage.ofElement(wv.withValue(KV.of(null, wv.getValue())));
+            });
     final WindowedValue.WindowedValueCoder<KV<Void, SideInputT>> kvCoder =
         coder.withValueCoder(KvCoder.of(VoidCoder.of(), coder.getValueCoder()));
     final MessageStream<OpMessage<KV<Void, Iterable<SideInputT>>>> groupedSideInput =
@@ -454,10 +456,11 @@ class ParDoBoundMultiTranslator<InT, OutT>
             new TupleTag<>("main output"),
             ctx);
     final MessageStream<OpMessage<Iterable<SideInputT>>> nonkeyGroupedSideInput =
-        groupedSideInput.map(opMessage -> {
-          WindowedValue<KV<Void, Iterable<SideInputT>>> wv = opMessage.getElement();
-          return OpMessage.ofElement(wv.withValue(wv.getValue().getValue()));
-        });
+        groupedSideInput.map(
+            opMessage -> {
+              WindowedValue<KV<Void, Iterable<SideInputT>>> wv = opMessage.getElement();
+              return OpMessage.ofElement(wv.withValue(wv.getValue().getValue()));
+            });
     final MessageStream<OpMessage<Iterable<SideInputT>>> broadcastSideInput =
         SamzaPublishViewTranslator.doTranslate(
             nonkeyGroupedSideInput,

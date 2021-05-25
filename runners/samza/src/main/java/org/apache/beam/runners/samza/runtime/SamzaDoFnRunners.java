@@ -20,7 +20,6 @@ package org.apache.beam.runners.samza.runtime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import org.apache.beam.runners.core.DoFnRunner;
 import org.apache.beam.runners.core.DoFnRunners;
 import org.apache.beam.runners.core.SideInputHandler;
@@ -185,7 +184,12 @@ public class SamzaDoFnRunners {
         (SamzaExecutionContext) context.getApplicationContainerContext();
     final DoFnRunner<InT, FnOutT> sdkHarnessDoFnRunner =
         new SdkHarnessDoFnRunner<>(
-            outputManager, stageBundleFactory, mainOutputTag, idToTupleTagMap, bundledEventsBag, stateRequestHandler);
+            outputManager,
+            stageBundleFactory,
+            mainOutputTag,
+            idToTupleTagMap,
+            bundledEventsBag,
+            stateRequestHandler);
     return DoFnRunnerWithMetrics.wrap(
         sdkHarnessDoFnRunner, executionContext.getMetricsContainer(), transformFullName);
   }
@@ -232,9 +236,7 @@ public class SamzaDoFnRunners {
 
         remoteBundle =
             stageBundleFactory.getBundle(
-                receiverFactory,
-                stateRequestHandler,
-                BundleProgressHandler.ignored());
+                receiverFactory, stateRequestHandler, BundleProgressHandler.ignored());
 
         // TODO: side input support needs to implement to handle this properly
         inputReceiver = Iterables.getOnlyElement(remoteBundle.getInputReceivers().values());

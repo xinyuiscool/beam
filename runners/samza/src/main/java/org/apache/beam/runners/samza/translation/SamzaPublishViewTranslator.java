@@ -18,7 +18,6 @@
 package org.apache.beam.runners.samza.translation;
 
 import java.util.List;
-
 import org.apache.beam.runners.samza.SamzaPipelineOptions;
 import org.apache.beam.runners.samza.runtime.OpMessage;
 import org.apache.beam.runners.samza.util.SamzaCoders;
@@ -44,7 +43,8 @@ class SamzaPublishViewTranslator<ElemT, ViewT>
     final String viewId = ctx.getViewId(transform.getView());
 
     final MessageStream<OpMessage<Iterable<ElemT>>> outputStream =
-        doTranslate(inputStream, elementCoder, ctx.getTransformId(), viewId, ctx.getPipelineOptions());
+        doTranslate(
+            inputStream, elementCoder, ctx.getTransformId(), viewId, ctx.getPipelineOptions());
 
     ctx.registerViewStream(transform.getView(), outputStream);
   }
@@ -65,8 +65,7 @@ class SamzaPublishViewTranslator<ElemT, ViewT>
     final MessageStream<WindowedValue<Iterable<ElemT>>> broadcastStream =
         options.getMaxSourceParallelism() == 1
             ? elementStream
-            : elementStream.broadcast(
-                SamzaCoders.toSerde(coder), "view-" + transformId);
+            : elementStream.broadcast(SamzaCoders.toSerde(coder), "view-" + transformId);
 
     return broadcastStream.map(element -> OpMessage.ofSideInput(viewId, element));
   }

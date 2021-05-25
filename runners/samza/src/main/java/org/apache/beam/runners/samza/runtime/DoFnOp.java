@@ -227,10 +227,11 @@ public class DoFnOp<InT, FnOutT, OutT> implements Op<InT, OutT, Void> {
       final ExecutableStage executableStage = ExecutableStage.fromPayload(stagePayload);
       stageContext = SamzaExecutableStageContextFactory.getInstance().get(jobInfo);
       stageBundleFactory = stageContext.getStageBundleFactory(executableStage);
-      final StateRequestHandler stateRequestHandler = SamzaStateRequestHandlers.of(
-          executableStage,
-          (Map<SideInputId, PCollectionView<?>>) sideInputMapping,
-          sideInputHandler);
+      final StateRequestHandler stateRequestHandler =
+          SamzaStateRequestHandlers.of(
+              executableStage,
+              (Map<SideInputId, PCollectionView<?>>) sideInputMapping,
+              sideInputHandler);
       this.fnRunner =
           SamzaDoFnRunners.createPortable(
               samzaPipelineOptions,

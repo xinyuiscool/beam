@@ -29,7 +29,6 @@ import org.apache.beam.model.pipeline.v1.RunnerApi;
 import org.apache.beam.runners.core.construction.RehydratedComponents;
 import org.apache.beam.runners.core.construction.WindowingStrategyTranslation;
 import org.apache.beam.runners.core.construction.graph.PipelineNode;
-import org.apache.beam.runners.core.construction.graph.QueryablePipeline;
 import org.apache.beam.runners.fnexecution.provisioning.JobInfo;
 import org.apache.beam.runners.fnexecution.wire.WireCoders;
 import org.apache.beam.runners.samza.SamzaPipelineOptions;
@@ -149,13 +148,11 @@ public class PortableTranslationContext {
 
   public WindowingStrategy<?, BoundedWindow> getPortableWindowStrategy(
       String collectionId, RunnerApi.Components components) {
-    RehydratedComponents rehydratedComponents =
-        RehydratedComponents.forComponents(components);
+    RehydratedComponents rehydratedComponents = RehydratedComponents.forComponents(components);
 
     RunnerApi.WindowingStrategy windowingStrategyProto =
-        components
-            .getWindowingStrategiesOrThrow(
-                components.getPcollectionsOrThrow(collectionId).getWindowingStrategyId());
+        components.getWindowingStrategiesOrThrow(
+            components.getPcollectionsOrThrow(collectionId).getWindowingStrategyId());
 
     WindowingStrategy<?, ?> windowingStrategy;
     try {

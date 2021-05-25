@@ -114,8 +114,7 @@ class GroupByKeyTranslator<K, InputT, OutputT>
       PortableTranslationContext ctx) {
     final String inputId = ctx.getInputId(transform);
     final RunnerApi.PCollection input = pipeline.getComponents().getPcollectionsOrThrow(inputId);
-    final MessageStream<OpMessage<KV<K, InputT>>> inputStream =
-        ctx.getMessageStreamById(inputId);
+    final MessageStream<OpMessage<KV<K, InputT>>> inputStream = ctx.getMessageStreamById(inputId);
     final WindowingStrategy<?, BoundedWindow> windowingStrategy =
         ctx.getPortableWindowStrategy(inputId, pipeline.getComponents());
     final WindowedValue.WindowedValueCoder<KV<K, InputT>> windowedInputCoder =
@@ -123,8 +122,9 @@ class GroupByKeyTranslator<K, InputT, OutputT>
     final TupleTag<KV<K, OutputT>> outputTag =
         new TupleTag<>(Iterables.getOnlyElement(transform.getTransform().getOutputsMap().keySet()));
 
-    final MessageStream<OpMessage<KV<K, OutputT>>> outputStream = doTranslatePortable(
-        input, inputStream, windowingStrategy, windowedInputCoder, outputTag, ctx);
+    final MessageStream<OpMessage<KV<K, OutputT>>> outputStream =
+        doTranslatePortable(
+            input, inputStream, windowingStrategy, windowedInputCoder, outputTag, ctx);
 
     ctx.registerMessageStream(ctx.getOutputId(transform), outputStream);
   }
@@ -163,17 +163,17 @@ class GroupByKeyTranslator<K, InputT, OutputT>
 
     final PCollection.IsBounded isBounded = SamzaPipelineTranslatorUtils.isBounded(input);
 
-    return  doTranslateGBK(
-            inputStream,
-            needRepartition,
-            reduceFn,
-            windowingStrategy,
-            kvInputCoder,
-            elementCoder,
-            ctx.getTransformFullName(),
-            ctx.getTransformId(),
-            outputTag,
-            isBounded);
+    return doTranslateGBK(
+        inputStream,
+        needRepartition,
+        reduceFn,
+        windowingStrategy,
+        kvInputCoder,
+        elementCoder,
+        ctx.getTransformFullName(),
+        ctx.getTransformId(),
+        outputTag,
+        isBounded);
   }
 
   private static <K, InputT, OutputT> MessageStream<OpMessage<KV<K, OutputT>>> doTranslateGBK(
