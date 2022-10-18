@@ -299,6 +299,7 @@ public class DoFnOp<InT, FnOutT, OutT> implements Op<InT, OutT, Void> {
         pushbackValues.add(rejectedValue);
       }
 
+      System.out.println("process " + inputElement.getValue());
       bundleManager.tryFinishBundle(emitter);
     } catch (Throwable t) {
       LOG.error("Encountered error during process element", t);

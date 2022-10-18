@@ -224,7 +224,7 @@ public class BundleManager<OutT> {
     CompletionStage<Collection<WindowedValue<OutT>>> outputFuture = futureCollector.finish();
 
     if (shouldFinishBundle() && isBundleStarted.compareAndSet(true, false)) {
-      LOG.debug("Finishing the current bundle.");
+      LOG.info("Finishing the current bundle.");
 
       // reset the bundle count
       // seal the bundle and emit the result future (collection of results)
